@@ -1,0 +1,69 @@
+//MoveHistory.cpp
+
+#include "MoveHistory.h"
+#include <sstream>
+#include <iostream>
+using namespace std;
+
+MoveHistory::MoveHistory() {
+
+}
+		
+MoveHistory::~MoveHistory() {
+
+}
+
+void MoveHistory::addMove(Move move) {
+	history.push_back(move);
+}
+
+Move MoveHistory::getLastMove() {
+	if (history.size() > 0) {
+		Move topMove = history.back();
+		history.pop_back();
+		return topMove;
+	}
+}
+
+Move& MoveHistory::peekLastMove() {
+	if (history.size() > 0)
+		return history.back();
+}
+
+string MoveHistory::toMessageString() {
+	stringstream rep;
+	vector<Move>::const_iterator iter;
+	for (iter = history.begin(); iter != history.end(); ++iter) {
+		rep << iter->toMessageString();
+	}
+	return rep.str();
+}
+
+bool MoveHistory::isEmpty() {
+	return history.empty();
+}
+
+string MoveHistory::getMovesXML() {
+	stringstream rep;
+	
+	rep << "<history>\n";
+	
+	vector<Move>::const_iterator iter;
+	for (iter = history.begin(); iter != history.end(); ++iter) {
+		Move mv = *iter;			//copy made to not deal with permissions right now
+		rep << mv.getXMLInfo();		// (not too expensive of an operation)
+	}
+	
+	rep << "</history>\n";
+	return rep.str();
+}
+
+void MoveHistory::resetHistory() {
+	history.clear();
+}
+
+bool MoveHistory::Test(std::ostream& os) {
+	bool success = true;
+	
+	return success;
+}

@@ -1,0 +1,4 @@
+//Color.h
+//enumeration of two colors
+
+enum Color {WHITE, BLACK};

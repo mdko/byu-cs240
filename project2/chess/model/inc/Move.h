@@ -1,0 +1,106 @@
+#ifndef MOVE_H
+#define MOVE_H
+
+#include <iostream>
+//#include "IChessPiece.h"
+#include "BoardPosition.h"
+#include <string>
+
+class IChessPiece;
+
+class Move {
+	private:
+		IChessPiece* movingPiece;
+		IChessPiece* capturedPiece;
+		IChessPiece* promotedPiece;
+		BoardPosition start;
+		BoardPosition destination;
+		
+		/**
+		 * @return a string representation of column position in algebraic terms,
+		 *	with columns 0-7 replaced with a-h
+		 */
+		std::string algebraicNotation(int column) const;
+		
+	public:
+		/**
+		 * three-arg constructor
+		 * @param pointer to chesspiece object that is moving
+		 * @param starting position of piece
+		 * @param ending position of piece
+		 */
+		Move(IChessPiece* _piece, BoardPosition _start, BoardPosition _destination);
+		
+		~Move();
+		
+		/**
+		 * copy constructor
+		 */
+		Move(const Move& other);
+		
+		/**
+		 * assignment operator
+		 */
+		Move& operator =(const Move& other);
+		
+		/**
+		 * less-than operator
+		 */
+		bool operator <(const Move& other) const;
+		
+		/**
+		 * equality operator
+		 */
+		bool operator ==(const Move& other) const;
+		
+		/**
+		 * @returns a string representation of move, for display in messages area
+		 */
+		std::string toMessageString() const;
+		
+		/**
+		 * @returns pointer to the piece that made the move
+		 */
+		IChessPiece* getMovingPiece();
+		
+		/**
+		 * If undo-ing a move where a pawn was promoted, since the was destroyed in the move
+		 *  and needs to be re-created, the new pawn needs to be pointed to by movingPiece
+		 * @param piece pointer to be assigned to the movingPiece
+		 */
+		void setMovingPiece(IChessPiece* piece);
+		
+		/**
+		 * @returns pointer to the piece that was captured in the move, if exists
+		 */
+		IChessPiece* getCapturedPiece();
+		
+		/**
+		 * @return starting position of moving object
+		 */
+		BoardPosition getStartPosition() const;
+		
+		/**
+		 * @return ending position of moving object
+		 */
+		BoardPosition getDestinationPosition() const;
+		
+		/**
+		 * sets capturedPiece pointer to piece, if in move moving piece captured a piece
+		 * @param pointer to the captured piece
+		 */
+		void addCapturedPiece(IChessPiece* piece);
+		
+		void addPromotedPiece(IChessPiece* piece);
+		
+		IChessPiece* getPromotedPiece();
+		
+		/**
+		 * @return string representation of this move, for use by XMLHandler
+		 */
+		std::string getXMLInfo();
+		
+		static bool Test(std::ostream& os);
+};
+
+#endif

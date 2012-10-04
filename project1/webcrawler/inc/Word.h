@@ -1,0 +1,91 @@
+#ifndef WORD_H
+#define WORD_H
+
+//#include "OccurrenceSet.h"
+#include "BST.h"
+#include "Occurrence.h"
+#include "StringUtil.h"
+#include "UnitTest.h"
+#include <string>
+#include <iostream>
+using namespace std;
+
+/*
+ * Word.h
+ * element contained in the WordIndex map/BST
+ */
+ 
+class Word{
+	private:
+		string value;					//holds the actual word
+		BST<Occurrence> occurrenceSet;  //holds the set of Occurrences where this word was found
+	
+	public:
+		/*
+		 * one-arg constructor
+		 *
+		 * Parameters:
+		 *  str--value of word
+		 */
+		Word(string str);
+		
+		/*
+		 * destructor
+		 *  calls destructor of OccurenceSet
+		 */
+		~Word();
+		
+		/*
+		 * adds an occurence
+		 *
+		 * Parameters:
+		 *  page--Page object containing URL where this word was found
+		 *  calls OccurenceSet's add() method
+		 *
+		 * Returns:
+		 *  true if added, false otherwise
+		 */
+		bool addOccurrence(URL url);
+		
+		bool hasOccurrence(URL url) const;
+		
+		void incrementOccurrenceCount(URL url);
+		
+		string getValue() const;
+		/*
+		 * not sure if necessary yet
+		 */
+		Occurrence findOccurrence(URL url) const;
+		
+		void printOccurrences() const;
+		/*
+		 * equality operator
+		 */
+		bool operator ==(const Word& other) const;
+		
+		/*
+		 * less-than operator
+		 */
+		bool operator <(const Word& other) const;
+		
+		/*
+		 * for cout
+		 */
+		friend ostream& operator <<(ostream& s, const Word& w);
+		
+		/*
+		 * prints the information stored in this word in
+		 *  XML format
+		 *
+		 * Parameters:
+		 *  none
+		 *
+		 * Returns:
+		 *  a string containing XML-formatted information
+		 */
+		string getXMLinfo();
+		
+		static bool Test(ostream& os);
+};
+
+#endif

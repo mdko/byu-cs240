@@ -1,0 +1,13 @@
+	ChessGame::MovePiece couts
+	
+	
+	//cout << mv.getMovingPiece()->getName() << " ";
+					//cout << mv.getStartPosition().getRow() << "," << mv.getStartPosition().getColumn() << " -> ";
+					//cout << mv.getDestinationPosition().getRow() << "," << mv.getDestinationPosition().getColumn() << " ";
+					//if (mv.getCapturedPiece() != NULL)
+					//	cout << mv.getCapturedPiece()->getName();
+					//cout << endl;
+					
+					
+					
+					//cout << mv.toString();

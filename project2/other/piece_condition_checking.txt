@@ -1,0 +1,8 @@
+Bishop getCandidateMoves longer/clearer
+
+		if ((board->getPiece(origPos) != NULL && !board->getPiece(origPos)->isEnemy(getColor())))
+			break;
+		if ((board->getPiece(origPos) != NULL && board->getPiece(origPos)->isEnemy(getColor()))) {
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}

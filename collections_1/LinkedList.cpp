@@ -1,0 +1,180 @@
+#include <string>
+#include <iostream>
+#include "LinkedList.h"
+using namespace std;
+
+//public:
+	
+		//!  No-arg constructor.  Initializes an empty linked list
+		LinkedList::LinkedList(): head(NULL),  count(0){
+		}
+	
+		//!  Copy constructor.  Makes a complete copy of its argument
+		LinkedList::LinkedList(const LinkedList & other){
+			Init(other);
+		}	
+		//!  Destructor
+		LinkedList::~LinkedList(){
+			Clear();
+        }
+	
+	
+		//! Assignment operator.  Makes a complete copy of its argument
+		//! @return A reference to oneself
+		LinkedList& LinkedList::operator =(const LinkedList & other){
+            if (&other != this){
+                Free();
+                Init(other);
+                return *this;
+            }
+        }
+	
+	
+		//!  @return true if the list is empty, or false if the list is not empty
+		bool LinkedList::IsEmpty() const{
+			return !count;			//true if 0, false if otherwise
+		}
+	
+		//!  Removes all values from the list
+		void LinkedList::Clear(){
+			Free();
+		}
+		//!  @return the number of values in the list
+		int LinkedList::GetSize() const{
+			return count;
+		}
+	
+		//!  @return a pointer to the first node in the list, or NULL if the list is empty
+		LLNode * LinkedList::GetFirst()const{
+			return head;
+		}
+	
+		//!  @returns a pointer to the last node in the list, or NULL if the list is empty
+		LLNode * LinkedList::GetLast()const{
+			LLNode* curNode = head;
+				if (curNode != NULL){
+					while (curNode->next != NULL){
+						curNode = curNode->next;
+					}
+			}
+			return curNode;
+		}
+	
+		//!  Inserts value v into the list after node n
+		//!  
+		//!  @param v The new value being inserted
+		//!  @param n A node that is already in the list after which the new node should 
+		//!      be inserted.
+		//!      If n is NULL, the new node should be inserted at the beginning of the list.
+		//!
+		//!  @return a pointer to the newly inserted node
+		LLNode * LinkedList::Insert(const std::string & v, LLNode * n){
+			//LLNode* curNode = first;
+			LLNode* newNode = new LLNode(v,NULL,NULL);
+			if (n == NULL){
+                  if (head == NULL){
+                     head = newNode;                   //uses assignment operator in LLNode class
+                     }
+                  else{
+                      newNode->next = head;				//THERE WERE PROBLEMS HERE
+				      head->prev = newNode;				//HAD PROBLEM HERE
+				      head = newNode;
+                  }
+			}
+			else{
+				newNode->next = n->next;
+				if (newNode->next != NULL)				//HAD PROBLEMS HERE
+					newNode->next->prev = newNode;
+				n->next = newNode;
+				newNode->prev = n;
+			}
+			count++;
+			return newNode;
+		}
+	
+		//! Searches for the first occurrence of value v that appears in the list 
+		//!   after node n
+		//!   
+		//!  @param v The value being searched for
+		//!  @param n The node in the list after which the search should begin.
+		//!      If n is NULL, the list should be searched from the beginning.
+		//!
+		//!  @return a pointer to the node containing v, or NULL if v is not found
+		LLNode * LinkedList::Find(const std::string & v, LLNode * n) const{
+            LLNode* curNode; 
+            if (n == NULL)
+            	curNode = head;
+			else
+			    curNode = n->next;
+			
+			while (curNode != NULL){
+				if ((curNode->value).compare(v)==0){
+					return curNode;
+				}
+				curNode = curNode->next;
+			}
+			return NULL;
+		}
+	
+		//!  Removes node n from the list
+		//!  
+		//!  @param n The node being removed from the list
+		void LinkedList::Remove(LLNode * n){
+			if (n != NULL && head != NULL){
+				if (head == n){
+					head = head->next;
+					if (head != NULL)
+						head->prev = NULL;
+				}
+				else{
+					//if (n->prev != NULL)
+						if (n->next != NULL)
+							n->next->prev = n->prev;
+						n->prev->next = n->next;
+				}
+				delete n;				//delete what n points to
+				n = NULL;				//point the ptr to NULL	
+			count--;
+			}
+		}
+		
+//private:
+		void LinkedList::Init(const LinkedList& other){
+			head=NULL;
+			count=other.count;
+
+			LLNode* otherCurNode = other.head;
+			LLNode* myCurNode = NULL;
+
+			while (otherCurNode != NULL){
+				LLNode* newNode = new LLNode(otherCurNode->value,0,0);
+				if (myCurNode == NULL)
+						head = newNode;
+				else{
+					myCurNode->next = newNode;
+					newNode->prev = myCurNode;
+                }
+				myCurNode = newNode;
+				otherCurNode = otherCurNode->next;
+			}
+		}
+
+		void LinkedList::Free(){
+			while (head != NULL){
+				LLNode * ln = head;
+				head = head->next;
+				delete ln;
+			}
+			head = NULL;
+			count = 0;
+		}
+		
+		void const LinkedList::PrintList(){
+			LLNode* curNode = head;
+			while (curNode != NULL){
+				cout << curNode->value << " ";
+				curNode = curNode->next;
+			}
+			cout << endl;
+		}
+

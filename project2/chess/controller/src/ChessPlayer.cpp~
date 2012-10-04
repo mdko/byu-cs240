@@ -1,0 +1,12 @@
+//ChessPlayer.cpp
+
+#include "ChessPlayer.h"
+
+//SHOULD I JUST HAVE TWO CLASSES (HUMANPLAYER AND COMPUTERPLAYER), OR
+//EACH BE AN INSTACE OF CHESSPLAYER?
+
+void on_CellSelected(int row, int col, int button) {
+}
+
+void on_TimerEvent() {
+}

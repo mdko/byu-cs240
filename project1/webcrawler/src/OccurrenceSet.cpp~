@@ -1,0 +1,27 @@
+//OccurrenceSet.cpp
+
+#include "OccurrenceSet.h"
+OccurrenceSet::OccurrenceSet() {
+}
+ 
+OccurrenceSet::~OccurrenceSet() {
+
+}
+
+void OccurrenceSet::add(URL url) {
+	//Occurrence newOcc(url);
+	//occurrenceSet.insert(newOcc);
+}
+
+Occurrence& OccurrenceSet::getOccurrence(URL& url) {
+
+}
+
+void OccurrenceSet::incrementCount(URL url) const {
+
+}
+
+bool OccurrenceSet::contains(URL url) const {
+	//Occurrence possOcc(url);
+	//return (occurrenceSet.find(possOcc) != NULL) ? 1 : 0;
+}

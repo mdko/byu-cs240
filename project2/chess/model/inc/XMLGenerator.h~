@@ -1,0 +1,19 @@
+#ifndef XML_HANDLER_H
+#define XML_HANDLER_H
+
+class XMLHandler {
+	private:
+	
+	public:
+	
+		XMLGenerator();
+		
+		~XMLGenerator();
+		
+		void generateSaveFile();
+		
+		void loadFile();
+		
+};
+
+#endif

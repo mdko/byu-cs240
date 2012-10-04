@@ -1,0 +1,121 @@
+//Move.cpp
+
+#include "Move.h"
+#include "UnitTest.h"
+#include <sstream>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include "IChessPiece.h"
+
+using namespace std;
+
+Move::Move(IChessPiece* _piece, BoardPosition _start, BoardPosition _destination) {
+	movingPiece = _piece;
+	capturedPiece = NULL;
+	promotedPiece = NULL;
+	start = _start;
+	destination = _destination;
+}
+		
+Move::~Move() {
+}
+
+Move::Move(const Move& other) : movingPiece(other.movingPiece), capturedPiece(other.capturedPiece),
+							start(other.start), destination(other.destination) {
+}
+
+Move& Move::operator =(const Move& other) {
+	if (&other != this) {
+		movingPiece = other.movingPiece;
+		capturedPiece = other.capturedPiece;
+		start = other.start;
+		destination = other.destination;
+	}
+	return *this;
+}
+
+//unimplemented because we will always add move to history
+bool Move::operator <(const Move& other) const {
+	return true;
+}
+
+bool Move::operator ==(const Move& other) const {
+	return true;
+}
+
+IChessPiece* Move::getMovingPiece() {
+	return movingPiece;
+}
+
+void Move::setMovingPiece(IChessPiece* piece) {
+	movingPiece = piece;
+}
+		
+IChessPiece* Move::getCapturedPiece() {
+	return capturedPiece;
+}
+
+BoardPosition Move::getStartPosition() const {
+	return start;
+}
+
+BoardPosition Move::getDestinationPosition() const {
+	return destination;
+}
+
+//TODO fix permissive errors when accessing name/forward declaration problem
+string Move::toMessageString() const {
+	stringstream rep;
+	
+	rep << algebraicNotation(getStartPosition().getColumn()) << (8 - getStartPosition().getRow()) << "-";
+	rep << algebraicNotation(getDestinationPosition().getColumn()) << 
+												(8 - getDestinationPosition().getRow());
+	rep << endl;
+
+	return rep.str();
+}
+
+//TODO is there a simpler way of converting the single char to a string besides just stringstream?
+string Move::algebraicNotation(int column) const {
+	stringstream rep;
+	char* numbers = "abcdefgh";
+	rep << numbers[column];
+	return rep.str();
+}
+
+void Move::addCapturedPiece(IChessPiece* piece) {
+	capturedPiece = piece;
+}
+
+void Move::addPromotedPiece(IChessPiece* piece) {
+	promotedPiece = piece;
+}
+
+IChessPiece* Move::getPromotedPiece() {
+	return promotedPiece;
+}
+
+string Move::getXMLInfo() {
+	stringstream rep;
+	
+	rep << "<move>\n";
+	rep << movingPiece->getXMLInfo(getStartPosition().getRow(), getStartPosition().getColumn());
+	
+	//if the piece was promoted, need to show that the piece changed
+	//if (promotedPiece != NULL)
+	//	rep << promotedPiece->getXMLInfo(getDestinationPosition().getRow(),
+	//									   getDestinationPosition().getColumn());
+		rep << movingPiece->getXMLInfo(getDestinationPosition().getRow(), 
+									   getDestinationPosition().getColumn());
+	if (capturedPiece != NULL)
+		rep << capturedPiece->getXMLInfo(getDestinationPosition().getRow(), 
+										 getDestinationPosition().getColumn());
+	
+	rep << "</move>\n";
+	
+	return rep.str();
+}
+		
+bool Move::Test(std::ostream& os) {
+}

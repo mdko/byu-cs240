@@ -1,0 +1,200 @@
+//ComputerPlayer.cpp
+
+#include "ComputerPlayer.h"
+#include "IChessController.h"
+#include "SelectDialog.h"
+#include "Move.h"
+#include "ChessGame.h"
+#include <iostream>
+
+ComputerPlayer::ComputerPlayer(ChessGame* _game, IChessView* _view, 
+								IChessController* _control, Color _color) {
+	this->game = _game;
+	this->view = _view;
+	this->controller = _control;
+	color = _color;
+}
+
+ComputerPlayer::~ComputerPlayer() {
+
+}
+
+//do nothing
+void ComputerPlayer::on_CellSelected(int row, int col, int button) {
+
+}
+
+void ComputerPlayer::on_TimerEvent() {
+	if (!isCheckMate() && !isStaleMate()) {
+		unHighlightAll();					//here in case comp v comp
+		bpBefore = game->getRandomStartPosition(color);
+		bpAfter = game->getRandomEndPosition(bpBefore);
+	
+		highlightMoves();					//not sure if necessary
+		movePiece();
+		//unHighlightAll();					//don't unhighlight here because user won't see
+											// highlight; instead, unhighlight when the next user
+											// clicks a piece (at start of humanplayer 
+											// on_cellselected routine)
+		//TODO implement random selection of a promoted pawn, if pawn can be promoted
+		//checkForPromotion();
+		
+		game->flipCurrentTurn();
+		setAppropriateLabels();
+	}
+}
+
+void ComputerPlayer::highlightMoves() { 
+	view->HighlightSquare(bpBefore.getRow(), bpBefore.getColumn(), BLUE_SQUARE);
+	view->HighlightSquare(bpAfter.getRow(), bpAfter.getColumn(), GREEN_SQUARE);	
+}
+
+void ComputerPlayer::unHighlightAll() {
+	for (int i=0; i<8; ++i)
+		for (int j=0; j<8; ++j)
+			view->UnHighlightSquare(i,j);
+}
+
+void ComputerPlayer::movePiece() {
+	//update view (before model so we can use piece on bpBefore to identify it's image)
+	view->ClearPiece(bpBefore.getRow(), bpBefore.getColumn());
+	
+	view->PlacePiece(bpAfter.getRow(), bpAfter.getColumn(), 
+					 game->getPieceImageName(bpBefore));
+	
+	//update model
+	Move mv = game->movePiece(bpBefore, bpAfter);
+
+	//print move's string representation to message area
+	view->WriteMessageArea(mv.toMessageString());
+}
+	
+void ComputerPlayer::setAppropriateLabels() {
+	if (color == WHITE) {
+		view->SetBottomLabel("");
+		if (game->inCheck())
+			view->SetTopLabel("Black's Turn. Black is currently in check!");
+		else
+			view->SetTopLabel("Black's Turn");
+	}
+	else {
+		view->SetTopLabel("");
+		if (game->inCheck())
+			view->SetBottomLabel("White's Turn. White is currently in check!");
+		else
+			view->SetBottomLabel("White's Turn");
+	}
+	
+	if  (isCheckMate() || isStaleMate())
+		endGame();
+}
+
+bool ComputerPlayer::isCheckMate() {
+
+	if (game->inCheck() && !game->movesRemain((color == WHITE) ? BLACK : WHITE))
+		return true;
+	return false;
+}
+
+bool ComputerPlayer::isStaleMate() {
+	if (!game->inCheck() && !game->movesRemain((color == WHITE) ? BLACK : WHITE))
+		return true;
+	return false;
+}
+
+void ComputerPlayer::endGame() {
+	
+	view->SetBottomLabel("");
+	view->SetTopLabel("");
+	
+	std::string title;
+	std::string message;
+	
+	//if the game is in checkmate, that means that the current player did something to cause it, 
+	// so current player is winner
+	if (isCheckMate()) {					
+		if (color == WHITE)	{							//if current player (the winner)'s color
+			view->SetBottomLabel("White Wins!");		// is WHITE, put message on bottom
+			message =  "Black is in check and cannot move.";
+		}
+		else {
+			view->SetTopLabel("Black Wins!");
+			message = "White is in check and cannot move.";
+		}
+		title ="Checkmate!";
+	}
+	//if current player did something that made next player have no turns and not be in check
+	else {
+		if (color == WHITE)	{
+			view->SetBottomLabel("No one wins!");
+			message = "Black is not in check and cannot move.";
+		}
+		else {
+			view->SetTopLabel("No one wins!");
+			message = "White is not in check and cannot move.";
+		}
+		title = "Stalemate!";
+	}
+	
+	message += " New game?";
+	std::vector<std::string> labels;
+	labels.resize(2);
+	labels[0]="YES";
+	labels[1]="NO";
+
+	signed int selected = SelectDialog::SelectDialogRun(title,message,labels);
+	switch (selected) {
+		case 0:							//click the "x", let stuff stay on board
+			break;
+		case 1:
+			controller->on_NewGame();	//click "YES"
+			break;
+		case 2:							//click "NO", quit (TODO: implement this)
+			controller->on_QuitGame();
+			break;
+	}
+}
+
+void ComputerPlayer::on_DragStart(int row, int col) {
+	return;
+}
+
+void ComputerPlayer::on_DragEnd(int row, int col) {
+	return;
+}
+
+void ComputerPlayer::resetCurrentClick() {
+	return;
+}
+
+void ComputerPlayer::checkForPromotion() {
+	
+	if (!game->canPromote(bpAfter))
+		return;
+
+	int randNum = (rand() % 4);
+	
+	switch (randNum) {
+		case 0:							//click "KNIGHT"
+			game->promotePawn(KNIGHT, bpAfter, game->getMostRecentMove());
+			break;
+		case 1:							//click "BISHOP"
+			game->promotePawn(BISHOP, bpAfter, game->getMostRecentMove());
+			break;
+		case 2:							//click "ROOK"
+			game->promotePawn(ROOK, bpAfter, game->getMostRecentMove());
+			break;
+		case 3:							//click "QUEEN"
+			game->promotePawn(QUEEN, bpAfter, game->getMostRecentMove());
+			break;
+	}
+
+	view->PlacePiece(bpAfter.getRow(), bpAfter.getColumn(), 
+					 game->getPieceImageName(bpAfter));
+}
+
+bool ComputerPlayer::Test(std::ostream& os) {
+	bool success = true;
+	
+	return success;
+}

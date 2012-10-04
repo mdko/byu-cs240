@@ -1,0 +1,113 @@
+BIN_FILE = bin/webcrawler
+TEST_FILE = bin/testdriver
+CRAWLER_OBJ_FILE = obj/WebCrawler.o
+TEST_OBJ_FILE = obj/TestDriver.o
+OBJ_FILES = obj/URL.o obj/Page.o obj/Word.o obj/PageQueue.o obj/URLFilter.o obj/PageDownloader.o obj/HTMLParser.o obj/WordIndex.o obj/Occurrence.o obj/PageHistory.o obj/StopWords.o obj/OutputGenerator.o
+LIB_FILE = lib/libcs240utils.a
+
+# runs the main executable with arguments (in bash, 'make run arg1=foo arg2=...')
+run : bin
+	$(BIN_FILE) $(arg1) $(arg2) $(arg3)
+
+# builds the main executable
+bin : $(BIN_FILE)
+
+$(BIN_FILE) : $(CRAWLER_OBJ_FILE) $(OBJ_FILES) $(LIB_FILE)
+	g++ -g -o $(BIN_FILE) $(CRAWLER_OBJ_FILE) $(OBJ_FILES) $(LIB_FILE)
+	
+obj/WebCrawler.o : src/WebCrawler.cpp
+	@ g++ -g -o obj/WebCrawler.o -c -I inc -I utils/inc src/WebCrawler.cpp
+
+
+# builds and runs test executable
+test : $(TEST_FILE)
+	$(TEST_FILE)
+
+$(TEST_FILE) : $(TEST_OBJ_FILE) $(OBJ_FILES) $(LIB_FILE)
+	g++ -w -g -o $(TEST_FILE) $(TEST_OBJ_FILE) $(OBJ_FILES) $(LIB_FILE)
+	
+obj/TestDriver.o : src/TestDriver.cpp
+	@ g++ -w -g -o obj/TestDriver.o -c -I inc -I utils/inc src/TestDriver.cpp
+	
+
+# various obj files
+obj/URL.o : src/URL.cpp
+	@ g++ -w -g -o obj/URL.o -c -I inc -I utils/inc src/URL.cpp
+	
+obj/PageQueue.o : src/PageQueue.cpp
+	@ g++ -w -g -o obj/PageQueue.o -c -I inc -I utils/inc src/PageQueue.cpp
+
+obj/URLFilter.o: src/URLFilter.cpp
+	@ g++ -w -g -o obj/URLFilter.o -c -I inc -I utils/inc src/URLFilter.cpp
+
+obj/PageDownloader.o : src/PageDownloader.cpp
+	@ g++ -w -g -o obj/PageDownloader.o -c -I inc -I utils/inc src/PageDownloader.cpp
+
+obj/HTMLParser.o : src/HTMLParser.cpp
+	@ g++ -w -g -o obj/HTMLParser.o -c -I inc -I utils/inc src/HTMLParser.cpp
+
+obj/Page.o : src/Page.cpp
+	@ g++ -w -g -o obj/Page.o -c -I inc -I utils/inc src/Page.cpp
+	
+obj/Word.o : src/Word.cpp
+	@ g++ -w -g -o obj/Word.o -c -I inc -I utils/inc src/Word.cpp
+	
+obj/Occurrence.o : src/Occurrence.cpp
+	@ g++ -w -g -o obj/Occurrence.o -c -I inc -I utils/inc src/Occurrence.cpp
+
+obj/WordIndex.o : src/WordIndex.cpp
+	@ g++ -w -g -o obj/WordIndex.o -c -I inc -I utils/inc src/WordIndex.cpp
+	
+obj/PageHistory.o : src/PageHistory.cpp
+	@ g++ -w -g -o obj/PageHistory.o -c -I inc -I utils/inc src/PageHistory.cpp
+	
+obj/StopWords.o : src/StopWords.cpp
+	@ g++ -w -g -o obj/StopWords.o -c -I inc -I utils/inc src/StopWords.cpp
+
+obj/OutputGenerator.o : src/OutputGenerator.cpp
+	@ g++ -w -g -o obj/OutputGenerator.o -c -I -inc -I utils/inc src/OutputGenerator.cpp
+
+# creates a static library file (.a file)
+lib : $(LIB_FILE)
+
+$(LIB_FILE) : utils/obj/StringUtil.o  utils/obj/URLInputStream.o utils/obj/FileInputStream.o \
+				utils/obj/HTTPInputStream.o utils/obj/CommandRunner.o utils/obj/FileSystem.o \
+				utils/obj/HTMLToken.o utils/obj/HTMLTokenizer.o
+	@ ar r $(LIB_FILE) utils/obj/*.o
+
+utils/obj/StringUtil.o : utils/src/StringUtil.cpp utils/inc/StringUtil.h
+	@ g++ -o utils/obj/StringUtil.o -c -I utils/inc utils/src/StringUtil.cpp
+	
+utils/obj/URLInputStream.o : utils/src/URLInputStream.cpp utils/inc/URLInputStream.h utils/inc/StringUtil.h \
+								utils/inc/CS240Exception.h utils/inc/HTTPInputStream.h utils/inc/FileInputStream.h \
+								utils/inc/InputStream.h
+	@ g++ -o utils/obj/URLInputStream.o -c -I utils/inc utils/src/URLInputStream.cpp
+
+utils/obj/FileInputStream.o : utils/src/FileInputStream.cpp utils/inc/FileInputStream.h utils/inc/CS240Exception.h
+	@ g++ -o utils/obj/FileInputStream.o -c -I utils/inc utils/src/FileInputStream.cpp
+
+utils/obj/HTTPInputStream.o : utils/src/HTTPInputStream.cpp utils/inc/HTTPInputStream.h utils/inc/CS240Exception.h \
+								utils/inc/StringUtil.h
+	@ g++ -o utils/obj/HTTPInputStream.o -c -I utils/inc utils/src/HTTPInputStream.cpp 
+
+utils/obj/CommandRunner.o : utils/src/CommandRunner.cpp utils/inc/CommandRunner.h utils/inc/CS240Exception.h \
+								utils/inc/StringUtil.h
+	@ g++ -o utils/obj/CommandRunner.o -c -I utils/inc utils/src/CommandRunner.cpp
+	
+utils/obj/FileSystem.o : utils/src/FileSystem.cpp utils/inc/FileSystem.h utils/inc/CS240Exception.h \
+							utils/inc/UnitTest.h
+	@ g++ -o utils/obj/FileSystem.o -c -I utils/inc utils/src/FileSystem.cpp
+
+utils/obj/HTMLToken.o : utils/src/HTMLToken.cpp utils/inc/HTMLToken.h
+	@ g++ -o utils/obj/HTMLToken.o -c -I utils/inc utils/src/HTMLToken.cpp
+	
+utils/obj/HTMLTokenizer.o : utils/src/HTMLTokenizer.cpp utils/inc/HTMLTokenizer.h
+	@ g++ -o utils/obj/HTMLTokenizer.o -c -I utils/inc utils/src/HTMLTokenizer.cpp
+	
+clean : 
+	- echo "Removing generated files"
+	- rm -f obj/*.o
+	- rm -f bin/webcrawler
+	- rm -f bin/testdriver
+	- rm -f lib/*.a
+	- rm -f utils/obj/*.o

@@ -1,0 +1,218 @@
+//Queen.cpp
+
+#include "Queen.h"
+#include "UnitTest.h"
+using namespace std;
+
+Queen::Queen(Color c, Direction d) : IChessPiece(QUEEN, c, d) {
+}
+
+Queen::~Queen(){
+}
+
+set<BoardPosition> Queen::getCandidateMoves(ChessBoard* board, BoardPosition pos) {
+	set<BoardPosition> candidateMovesSet;
+	
+	//up
+	BoardPosition origPos(pos);
+	while(origPos.moveUp()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//up-right
+	origPos = pos;
+	while (origPos.moveUpRight()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//right
+	origPos = pos;
+	while (origPos.moveRight()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//down-right
+	origPos = pos;
+	while (origPos.moveDownRight()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//down
+	origPos = pos;
+	while (origPos.moveDown()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//down-left	
+	origPos = pos;
+	while (origPos.moveDownLeft()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//left
+	origPos = pos;
+	while (origPos.moveLeft()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	//up-left
+	origPos = pos;
+	while (origPos.moveUpLeft()) {
+		if (board->getPiece(origPos) != NULL) {
+			if (!board->getPiece(origPos)->isEnemy(getColor()))
+				break;
+			candidateMovesSet.insert(BoardPosition(origPos));
+			break;
+		}
+		candidateMovesSet.insert(BoardPosition(origPos));
+	}
+	
+	return candidateMovesSet;
+}
+
+string Queen::getTypeString() {
+	return "queen";
+}
+
+ImageName Queen::getImageName() {
+	if (getColor() == WHITE)
+		return W_QUEEN;
+	else
+		return B_QUEEN;
+}
+
+void Queen::firstTurnDone() {
+	return;
+}
+
+void Queen::firstTurnUnDone() {
+	return;
+}
+
+string Queen::getXMLInfo(int row, int column) {
+	stringstream stream;
+	
+	stream << "<piece ";
+	stream << "type=\"" << getTypeString() << "\" ";
+	stream << "color=\"" << getColorString() << "\" ";
+	stream << "column=\"" << column << "\" ";
+	stream << "row=\"" << row << "\"/>\n";
+	
+	return stream.str();
+}
+
+bool Queen::Test(std::ostream& os) {
+	bool success = true;
+	
+	/*
+	 * TEST 1 white queen in starting location of full initial board
+	 */
+	Queen q1(WHITE, UP);
+	ChessBoard board1;
+	board1.initializeBoard();
+	
+	set<BoardPosition> bpSet = q1.getCandidateMoves(&board1, BoardPosition(7,3));
+	
+	TEST(bpSet.find(BoardPosition(0,1)) == bpSet.end());
+	TEST(bpSet.size() == 0);		//should have no moves from a newgame board
+	TEST(q1.getTypeString() == "queen");
+	TEST(q1.getImageName() == W_QUEEN);
+	
+	/*
+	 * TEST 2 black queen in middle of an empty board (3, 3)
+	 */
+	IChessPiece* q2 = new Queen(BLACK, DOWN);
+	ChessBoard board2;
+	board2.initializeBlankTestBoard(q2, 3, 3);
+	
+	set<BoardPosition> bpSet2 = q2->getCandidateMoves(&board2, BoardPosition(3,3));
+	
+	TEST(bpSet2.find(BoardPosition(2,3)) != bpSet2.end());	//board positions that the queen
+	TEST(bpSet2.find(BoardPosition(7,3)) != bpSet2.end());	// should be able to move to
+	TEST(bpSet2.find(BoardPosition(0,3)) != bpSet2.end());	//up and down
+	TEST(bpSet2.find(BoardPosition(6,6)) != bpSet2.end());	//diagonally
+	TEST(bpSet2.find(BoardPosition(4,2)) != bpSet2.end());
+	TEST(bpSet2.find(BoardPosition(3,0)) != bpSet2.end());
+	TEST(bpSet2.find(BoardPosition(3,6)) != bpSet2.end());
+	TEST(bpSet2.find(BoardPosition(5,2)) == bpSet2.end());	//board positions that the queen
+	TEST(bpSet2.find(BoardPosition(0,7)) == bpSet2.end());	// should NOT be able to move to
+	TEST(bpSet2.size() == 27);
+	TEST(q2->getTypeString() == "queen");
+	TEST(q2->getImageName() == B_QUEEN);
+	
+	/*
+	 * TEST 3 white queen near bottom right edge of empty board (6, 5)
+	 */
+	IChessPiece* q3 = new Queen(WHITE, UP);
+	ChessBoard board3;
+	board3.initializeBlankTestBoard(q3, 5, 6);
+	
+	set<BoardPosition> bpSet3 = q3->getCandidateMoves(&board3, BoardPosition(5, 6));
+	
+	TEST(bpSet3.find(BoardPosition(6, 7)) != bpSet3.end());
+	TEST(bpSet3.find(BoardPosition(7, 4)) != bpSet3.end());
+	TEST(bpSet3.find(BoardPosition(6, 6)) != bpSet3.end());
+	TEST(bpSet3.find(BoardPosition(0, 0)) == bpSet3.end());
+	TEST(bpSet3.find(BoardPosition(7, 5)) == bpSet3.end());
+	TEST(bpSet3.size() == 23);
+	TEST(q3->getTypeString() == "queen");
+	TEST(q3->getImageName() == W_QUEEN);
+	
+	/*
+	 * TEST 4 black queen near top of board with one other piece (1, 4)
+	 */
+	IChessPiece* q4 = new Queen(BLACK, DOWN);
+	ChessBoard board4;
+	board4.initializeTwoTwoBoard(q4, 2, 4);
+	
+	set<BoardPosition> bpSet4 = q4->getCandidateMoves(&board4, BoardPosition(2, 4));
+	
+	TEST(bpSet4.find(BoardPosition(2, 3)) != bpSet4.end());
+	TEST(bpSet4.find(BoardPosition(2, 1)) == bpSet4.end());	//can't go past where friendly
+	TEST(bpSet4.find(BoardPosition(5, 0)) == bpSet4.end());	//where the friendly piece is
+	TEST(bpSet4.size() == 22);
+	
+	return success;
+}

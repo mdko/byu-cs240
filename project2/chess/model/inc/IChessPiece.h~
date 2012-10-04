@@ -1,0 +1,188 @@
+#ifndef I_CHESS_PIECE_H
+#define I_CHESS_PIECE_H
+
+#include "ModelDefines.h"
+#include "ChessGuiDefines.h"
+#include "ChessBoard.h"
+#include "BoardPosition.h"
+#include <iostream>
+#include <sstream>
+#include <set>
+#include <string>
+
+class IChessPiece {
+	private:
+		/**
+		 * Three enumarations, defined in ModelDefines.h
+		 */
+		PieceType type;
+		Color color;
+		Direction direction;
+		
+		/**
+		 * For undo-ing a move, if this piece has been promoted we know it
+		 *  it should revert back to a pawn
+		 */
+		bool promoted;
+		
+		bool firstTurn;
+		
+	public:
+		
+		/**
+		 * Three arg constructor
+		 * @param enumerated type of piece (i.e. PAWN, KING, etc.)
+		 * @param enumerated color of piece (WHITE or BLACK)
+		 * @param enumerated direction piece goes, important for pawns (UP or DOWN)
+		 */
+		IChessPiece(PieceType t, Color c, Direction d) : 
+			type(t), color(c), direction(d), promoted(false), firstTurn(true); {
+		}
+		
+		virtual ~IChessPiece() {
+		}
+		
+		/**
+		 * @return enumerated type (i.e. PAWN, KING, etc.)
+		 */
+		PieceType getType() {
+			return type;
+		}
+		
+		/**
+		 * @return enumerated color (WHITE or BLACK)
+		 */
+		Color getColor() {
+			return color;
+		}
+		
+		/**
+		 * @return enumerated direction (UP or DOWN)
+		 */
+		Direction getDirection() {
+			return direction;
+		}
+		
+		/**
+		 * Determines if the passed in piece is opposite in color of this piece
+		 * @param pointer to piece of unknown color/team
+		 * @return true if piece pointer is opposite in color of this piece
+		 */
+		bool isEnemy(IChessPiece* other) {
+			return (color != other->getColor()) ? true : false;
+		}
+		
+		/**
+		 * Determines if the passed in color is opposite in color of this piece's color
+		 * @param enumerated color (UP or DOWN)
+		 * @return true if passed in color is opposite of this piece's color
+		 */
+		bool isEnemy(Color _color) {
+			return (color != _color) ? true : false;
+		}
+		
+		/**
+		 * Determines if this piece can, based on its position on the board, capture the enemy king
+		 * @param pointer to the board object where each piece is found
+		 * @param position of this piece on board/position from which to check for access to king
+		 * @return true if this piece can capture the enemy king
+		 */
+		bool canCaptureKing(ChessBoard* board, BoardPosition pos) {
+			std::set<BoardPosition>::const_iterator iter;
+			std::set<BoardPosition> bpSet = getCandidateMoves(board, pos);
+			
+			for (iter = bpSet.begin(); iter != bpSet.end(); ++iter) {
+				if (board->getPiece(*iter) != NULL && 
+					board->getPiece(*iter)->isEnemy(color) && 
+					board->getPiece(*iter)->getType() == KING)
+					return true;
+			}
+			return false;
+		}
+		
+		/**
+		 * Determines if this piece can, based on its position on the board,
+		 *  capture a specified piece
+		 * @param pointer to piece object to check if capturable
+		 * @param pointer to the board object where each piece is found
+		 * @param position of this piece on board (not position of piece to search for)
+		 * @return true if this piece can capture the passed in piece
+		 */
+		bool canCapturePiece(IChessPiece* other, ChessBoard* board, BoardPosition pos) {
+			std::set<BoardPosition>::const_iterator iter;
+			std::set<BoardPosition> bpSet = getCandidateMoves(board, pos);
+			
+			for (iter = bpSet.begin(); iter != bpSet.end(); ++iter) {
+				if (board->getPiece(*iter) == other)
+					return true;
+			}
+			
+			return false;
+		}
+		
+		/**
+		 * @return string representation of color enumeration ("white" or "black")
+		 */
+		std::string getColorString() {
+			if (color == WHITE)
+				return "white";
+			else
+				return "black";
+		}
+		
+		void setPromoted() {
+			promoted = true;
+		}
+		
+		void unSetPromoted() {
+			promoted = false;
+		}
+		
+		bool isPromoted() {
+			return promoted;
+		}
+		
+		bool isFirstTurn() {
+			return firstTurn;
+		}
+		
+		/**
+		 * Sets the firstTurnDone bool to true
+		 * Important for pawns and their initial moves
+		 */
+		virtual void firstTurnDone() = 0;
+		
+		/**
+		 * Sets the firstTurnDone bool to false
+		 * Important for pawns and their initial moves
+		 * Used by undoMove()
+		 */
+		virtual void firstTurnUnDone() = 0;
+		
+		/**
+		 * @return string representation of type enumeration ("pawn", "king", etc.)
+		 */
+		virtual std::string getTypeString() = 0;
+		
+		/**
+		 * @return enumeration of the ImageName (found in ChessGuiDefines), 
+		 *  used by controller towards view to set images on gui
+		 */
+		virtual ImageName getImageName() = 0;
+		
+		/**
+		 * @param row position of piece
+		 * @param column position of piece
+		 * @return XML representation of the piece based on its passed in position
+		 */
+		virtual std::string getXMLInfo(int row, int column) = 0;
+		
+		/**
+		 * @param pointer to board containing pieces
+		 * @param position of this piece on  board
+		 * @return set of all possible legal moves(BoardPositions) for this piece, barring check
+		 */
+		virtual std::set<BoardPosition> getCandidateMoves(ChessBoard* board, BoardPosition pos) = 0;
+};
+
+#endif

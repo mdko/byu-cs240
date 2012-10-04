@@ -1,0 +1,46 @@
+#ifndef OCCURRENCE_SET_H
+#define OCCURRENCE_SET_H
+
+#include "Occurrence.h"
+#include "BST.h"
+#include "URL.h"
+
+/*
+ * OccurrenceSet.h
+ * a set of Occurrence objects
+ */
+ 
+class OccurrenceSet{
+	private:
+		//BST<Occurrence> occurrenceSet;			//a binary search tree containing Occurence objects
+	
+	public:
+		
+		/*
+		 * no-arg constructor
+		 */
+		OccurrenceSet();
+		 
+		/*
+		 * destructor
+		 */
+		~OccurrenceSet();
+		
+		/*
+		 * creates an occurence if necessary and adds it to Set
+		 * calls BST's add method 
+		 *
+		 * Parameters:
+		 *  url--the URL object that is a member of an Occurence object
+		 */
+		void add(URL url);
+		
+		Occurrence& getOccurrence(URL& url);
+		
+		void incrementCount(URL url)const;
+		
+		bool contains(URL url) const;
+
+};
+
+#endif

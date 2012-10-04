@@ -1,0 +1,13 @@
+#ifndef I_PIECE_H
+#define I_PIECE_H
+
+#include <iostream>
+
+class IPiece {
+	private:
+	
+	public:
+		
+};
+
+#endif

@@ -1,0 +1,9 @@
+<website>
+	<start-url>
+		http://students.cs.byu.edu/~cs240ta/crawler_tests
+	</start-url>
+	<pages>
+	</pages>
+	<index>
+	</index>
+</website>

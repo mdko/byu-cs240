@@ -1,0 +1,42 @@
+#ifndef I_CHESS_PLAYER_H
+#define I_CHESS_PLAYER_H
+
+/**
+ * The IChessPlayer class provides an interface for a ChessController implementation to interact
+ * with the player through, regardless of whether the player is a human or a computer.
+ */
+class IChessPlayer
+{
+public:
+	virtual ~IChessPlayer(){
+	}
+	
+	/**
+	 * Indicate to the player that the user clicked on the given
+	 * row and column with the mouse.
+	 */
+	virtual void on_CellSelected(int row, int col, int button) = 0;
+
+	/**
+	 * Handle when the timeout duration has passed.
+	 */
+	virtual void on_TimerEvent() = 0;
+	
+	/**
+	 * Starts a move (internally calls on_CellSelected() and follows that logic)
+	 */
+	virtual void on_DragStart(int row, int col) = 0;
+	
+	/**
+	 * End a move, either placing piece, highlighting moves of friendly piece landed on,
+	 *	or do nothing
+	 */
+	virtual void on_DragEnd(int row, int col) = 0;
+	
+	/**
+	 * If save/load game called, need to reset selection for human players
+	 */
+	virtual void resetCurrentClick() = 0;
+};
+
+#endif

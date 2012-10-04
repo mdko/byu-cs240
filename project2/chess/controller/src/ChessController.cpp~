@@ -1,0 +1,469 @@
+#include "ChessController.h"
+#include "SelectDialog.h"
+#include "HumanPlayer.h"
+#include "ComputerPlayer.h"
+#include "BoardPosition.h"
+#include <cstdlib>
+#include <string>
+#include <ctime>
+#include <iostream>
+
+ChessController::ChessController(int _playersSetting) : playersSetting(_playersSetting) {
+	srand((unsigned)time(0));
+	onSaveLoadGame = false;
+	game = NULL;
+	view = NULL;
+	playerWhite = NULL;
+	playerBlack = NULL;
+	firstGame = true;
+}
+
+ChessController::~ChessController() {
+	clear();
+}
+
+void ChessController::clear() {
+	delete game;
+	delete playerWhite;
+	delete playerBlack;
+}
+
+//can't change labels here because we want them to change right after a piece has been moved
+// so change at end of 2nd click in player's on_CellSelected method
+void ChessController::on_CellSelected(int row, int col, int button) {
+	
+	view->SetStatusBar("");
+	
+	if (!onSaveLoadGame) {
+		if (game->getCurrentTurn() == WHITE)
+			playerWhite->on_CellSelected(row, col, button);		
+		else
+			playerBlack->on_CellSelected(row, col, button);
+	}
+}
+
+void ChessController::on_DragStart(int row, int col) {
+
+	view->SetStatusBar("");
+	
+	if (!onSaveLoadGame) {
+		if (game->getCurrentTurn() == WHITE)
+			playerWhite->on_DragStart(row, col);		
+		else
+			playerBlack->on_DragStart(row, col);
+	}
+}
+
+bool ChessController::on_DragEnd(int row, int col) {
+	view->SetStatusBar("");
+	
+	if (!onSaveLoadGame) {
+		if (game->getCurrentTurn() == WHITE)
+			playerWhite->on_DragEnd(row, col);		
+		else
+			playerBlack->on_DragEnd(row, col);
+	}
+}
+
+void ChessController::on_NewGame() {
+
+	//only prompt user to save if the new game is not the first and the current
+	// game has not been saved
+	if (!firstGame) {
+		if (!game->isRecentlySaved()) {
+			const std::string title("");
+			const std::string message("Do you want to save the game?");
+			std::vector<std::string> labels;
+			labels.resize(2);
+			labels[0]="YES";
+			labels[1]="NO";
+			signed int selected = SelectDialog::SelectDialogRun(title,message,labels);
+		
+			switch (selected) {
+				case 0:
+					break;
+				case 1:
+					on_SaveGame();
+					break;
+				case 2:
+					break;
+			}
+		}
+	}
+	
+	/*
+	 * put piece images on board
+	 */
+	initializeBoardImages();
+	
+	/*
+	 * remove previous game
+	 */
+	clear();
+	
+	/*
+	 * create/initialize the facade (entry point into model)
+	 */
+	//TODO need to delete previous chess game?
+	
+	game = new ChessGame();
+	game->startNewGame();
+	
+	/*
+	 * couldn't do this in constructor because view isn't connected in main.cpp
+	 *  until after constructor is finished being called
+	 */
+	determinePlayers(playersSetting);
+	
+	/*
+	 * set appropriate starting turn label, blank other label
+	 */
+	view->SetBottomLabel("White's Turn");
+	view->SetTopLabel("");
+	
+	/*
+	 * blank status bar, messages
+	 */
+	view->SetStatusBar("");
+	view->ClearMessageArea();
+	
+	firstGame = false;	//never set to true anywhere else
+}
+
+//TODO
+//if current game has no associated save file, call saveGameAs
+void ChessController::on_SaveGame() {
+	
+	clearAndRemoveHighlights();
+	onSaveLoadGame = true;
+	
+	if (!game->isSaved()) {
+		std::string newFile = view->SelectSaveFile();
+		if (newFile.empty()) {
+			onSaveLoadGame = false;
+			return;
+		}
+		game->saveGameAs(newFile);
+	}
+	else
+		game->saveGame();
+		
+	onSaveLoadGame = false;
+}
+
+void ChessController::on_SaveGameAs() {
+
+	clearAndRemoveHighlights();
+	onSaveLoadGame = true;
+
+	std::string newFile = view->SelectSaveFile();
+	if (newFile.empty()) {
+		onSaveLoadGame = false;
+		return;
+	}
+	game->saveGameAs(newFile);
+
+	onSaveLoadGame = false;
+}
+
+void ChessController::on_LoadGame() { 
+	
+	clearAndRemoveHighlights();
+	onSaveLoadGame = true;
+	
+	std::string file = view->SelectLoadFile();
+	
+	if (file.empty()) {
+		onSaveLoadGame = false;
+		view->SetStatusBar("Unable to load file.");
+		return;
+	}
+	
+	if (!game->loadGame(file)) {
+		onSaveLoadGame = false;
+		view->SetStatusBar("Unable to load file.");
+		return;
+	}
+	
+	onSaveLoadGame = false;
+	
+	//in game, board positions were made
+	//here, place each board picture in corresponding place and make the game continue on as normal
+	//for loop for each board position
+	for (int i=0; i<8; ++i) {
+		for (int j=0; j<8; ++j) {
+			view->ClearPiece(i,j); 	//clear all pieces
+			BoardPosition bp(i,j);
+			if (game->getPiece(bp) != NULL) {
+				//only place the pieces that should be there, based on board obj's status
+				view->PlacePiece(bp.getRow(), bp.getColumn(), game->getPieceImageName(bp));
+			}
+		}	
+	}
+	
+	view->ClearMessageArea();
+	view->WriteMessageArea(game->getMoveHistory());
+	
+	if (game->getCurrentTurn() == BLACK) {
+		view->SetBottomLabel("");
+		if (game->inCheck())
+			view->SetTopLabel("Black's Turn. Black is currently in check!");
+		else
+			view->SetTopLabel("Black's Turn");
+	}
+	else {
+		view->SetTopLabel("");
+		if (game->inCheck())
+			view->SetBottomLabel("White's Turn. White is currently in check!");
+		else
+			view->SetBottomLabel("White's Turn");
+	}
+	if (isCheckMate() || isStaleMate())
+		endGame();
+	
+}
+
+void ChessController::on_UndoMove() {
+
+	if (!game->historyIsEmpty()) {
+		/*
+		 * update bowels/model
+		 */
+		Move lastMove = game->undoMove();
+		game->flipCurrentTurn();
+		/*
+		 *update gui
+		 */
+		// update gui board
+		view->ClearPiece(lastMove.getDestinationPosition().getRow(), 
+						 lastMove.getDestinationPosition().getColumn());
+						 
+		view->PlacePiece(lastMove.getStartPosition().getRow(), 
+						 lastMove.getStartPosition().getColumn(),
+						 lastMove.getMovingPiece()->getImageName());
+	
+		if (lastMove.getCapturedPiece() != NULL) {
+			view->PlacePiece(lastMove.getDestinationPosition().getRow(),
+							 lastMove.getDestinationPosition().getColumn(),
+							 lastMove.getCapturedPiece()->getImageName());
+		}
+		
+		// remove highlights
+		for (int i=0; i<8; ++i)
+			for (int j=0; j<8; ++j)
+				view->UnHighlightSquare(i,j);
+		
+		// update message area
+		// NOTE: CLEARING AND UPDATING MESSAGE AREA AFTER SETTING LABELS MAKES THE LABELS ASKEW
+		view->ClearMessageArea();
+		view->WriteMessageArea(game->getMoveHistory());
+	
+		// set labels
+		if (game->getCurrentTurn() == BLACK) {
+			view->SetBottomLabel("");
+			if (game->inCheck())
+				view->SetTopLabel("Black's Turn. Black is currently in check!");
+			else
+				view->SetTopLabel("Black's Turn");
+		}
+		else {
+			view->SetTopLabel("");
+			if (game->inCheck())
+				view->SetBottomLabel("White's Turn. White is currently in check!");
+			else
+				view->SetBottomLabel("White's Turn");
+		}																
+	
+		// if a pawn (do this for all pieces, but only method defined in pawn class), 
+		//  check to see if it just did its first move
+		if ((game->getPiece(lastMove.getStartPosition())->getDirection() == UP &&
+			 lastMove.getStartPosition().getRow() == 6) ||
+			(game->getPiece(lastMove.getStartPosition())->getDirection() == DOWN &&
+			 lastMove.getStartPosition().getRow() == 1))
+			game->getPiece(lastMove.getStartPosition())->firstTurnUnDone();
+	}
+}
+	
+void ChessController::on_QuitGame() {
+	
+	if (!game->isRecentlySaved()) {
+		const std::string title("");
+		const std::string message("Save game before exit?");
+		std::vector<std::string> labels;
+		labels.resize(2);
+		labels[0]="YES";
+		labels[1]="NO";
+		signed int selected = SelectDialog::SelectDialogRun(title,message,labels);
+		
+		switch (selected) {
+			case 0:
+				break;
+			case 1:
+				on_SaveGame();
+				break;
+			case 2:
+				break;
+		}
+	}
+}
+
+void ChessController::on_TimerEvent() {
+	
+	view->SetStatusBar("");
+	
+	if (!onSaveLoadGame && !isCheckMate() && !isStaleMate()) {
+		if (game->getCurrentTurn() == WHITE)
+			playerWhite->on_TimerEvent();
+		else
+			playerBlack->on_TimerEvent();
+	}
+}
+
+void ChessController::SetView(IChessView* view) {
+	this->view = view;	//would this.view = view work? why -> like in ChessView.cpp (given to me)?
+}
+
+void ChessController::determinePlayers(int playersSetting) {
+	switch(playersSetting) {
+		case 0:
+			playerWhite = new HumanPlayer(game, view, this, WHITE);
+			playerBlack = new HumanPlayer(game, view, this, BLACK);
+			break;
+		case 1:
+			playerWhite = new HumanPlayer(game, view, this, WHITE);
+			playerBlack = new ComputerPlayer(game, view, this, BLACK);
+			break;
+		case 2:
+			playerWhite = new ComputerPlayer(game, view, this, WHITE);
+			playerBlack = new HumanPlayer(game, view, this, BLACK);
+			break;
+		case 3:
+			playerWhite = new ComputerPlayer(game, view, this, WHITE);
+			playerBlack = new ComputerPlayer(game, view, this, BLACK);
+			break;
+	}
+}
+
+bool ChessController::isCheckMate() {
+
+	if (game->inCheck() && !game->movesRemain(game->getCurrentTurn()))
+		return true;
+	return false;
+}
+
+bool ChessController::isStaleMate() {
+	if (!game->inCheck() && !game->movesRemain(game->getCurrentTurn()))
+		return true;
+	return false;
+}
+
+void ChessController::endGame() {
+	
+	view->SetBottomLabel("");
+	view->SetTopLabel("");
+	
+	std::string title;
+	std::string message;
+	
+	//if the game is in checkmate, that means that the current player did something to cause it,
+	// so current player is winner
+	if (isCheckMate()) {
+		if (game->getCurrentTurn() == BLACK) {			//if current player (the winner)'s color
+			view->SetBottomLabel("White Wins!");		// is WHITE, put message on bottom
+			message =  "Black is in check and cannot move.";
+		}
+		else {
+			view->SetTopLabel("Black Wins!");
+			message = "White is in check and cannot move.";
+		}
+		title ="Checkmate!";
+	}
+	//if current player did something that made next player have no turns and not be in check
+	else {
+		if (game->getCurrentTurn() == BLACK) {
+			view->SetBottomLabel("No one wins!");
+			message = "Black is not in check and cannot move.";
+		}
+		else {
+			view->SetTopLabel("No one wins!");
+			message = "White is not in check and cannot move.";
+		}
+		title = "Stalemate!";
+	}
+	
+	message += " New game?";
+	std::vector<std::string> labels;
+	labels.resize(2);
+	labels[0]="YES";
+	labels[1]="NO";
+
+	signed int selected = SelectDialog::SelectDialogRun(title,message,labels);
+	switch (selected) {
+		case 0:							//click the "x", let stuff stay on board
+			break;
+		case 1:
+			on_NewGame();				//click "YES"
+			break;
+		case 2:							//click "NO", check to save, quit (TODO: implement this)
+			on_QuitGame();
+			break;
+	}
+}
+
+void ChessController::clearAndRemoveHighlights() {
+	for (int i=0; i<8; ++i) {
+		for (int j=0; j<8; ++j) {
+			view->UnHighlightSquare(i,j);	
+		}
+	}
+	//resets selection for current player (only really applicable if human players)
+	if (game->getCurrentTurn() == WHITE)
+		playerWhite->resetCurrentClick();
+	else
+		playerBlack->resetCurrentClick();
+}
+
+void ChessController::initializeBoardImages() {
+	// clear all images from board
+	for (int i=0; i<8; ++i) {
+		for (int j=0; j<8; ++j) {
+			view->ClearPiece(i,j);
+			view->UnHighlightSquare(i,j);	
+		}
+	}
+			
+	// put all pieces in correct place
+	view->PlacePiece(0,0,B_ROOK);
+	view->PlacePiece(0,1,B_KNIGHT);
+	view->PlacePiece(0,2,B_BISHOP);
+	view->PlacePiece(0,3,B_QUEEN);
+	view->PlacePiece(0,4,B_KING);
+	view->PlacePiece(0,5,B_BISHOP);
+	view->PlacePiece(0,6,B_KNIGHT);
+	view->PlacePiece(0,7,B_ROOK);
+	view->PlacePiece(1,0,B_PAWN);
+	view->PlacePiece(1,1,B_PAWN);
+	view->PlacePiece(1,2,B_PAWN);
+	view->PlacePiece(1,3,B_PAWN);
+	view->PlacePiece(1,4,B_PAWN);
+	view->PlacePiece(1,5,B_PAWN);
+	view->PlacePiece(1,6,B_PAWN);
+	view->PlacePiece(1,7,B_PAWN);
+	
+	view->PlacePiece(7,0,W_ROOK);
+	view->PlacePiece(7,1,W_KNIGHT);
+	view->PlacePiece(7,2,W_BISHOP);
+	view->PlacePiece(7,3,W_QUEEN);
+	view->PlacePiece(7,4,W_KING);
+	view->PlacePiece(7,5,W_BISHOP);
+	view->PlacePiece(7,6,W_KNIGHT);
+	view->PlacePiece(7,7,W_ROOK);
+	view->PlacePiece(6,0,W_PAWN);
+	view->PlacePiece(6,1,W_PAWN);
+	view->PlacePiece(6,2,W_PAWN);
+	view->PlacePiece(6,3,W_PAWN);
+	view->PlacePiece(6,4,W_PAWN);
+	view->PlacePiece(6,5,W_PAWN);
+	view->PlacePiece(6,6,W_PAWN);
+	view->PlacePiece(6,7,W_PAWN);
+}

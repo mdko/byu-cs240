@@ -1,0 +1,318 @@
+//ChessGame.cpp
+//the facade/entry-point into the model
+
+#include "ChessGame.h"
+#include "UnitTest.h"
+#include "XMLHandler.h"
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+ChessGame::ChessGame() : currentTurn(WHITE) {
+	board = new ChessBoard();						
+	history = new MoveHistory();
+	xmlHandler = new XMLHandler(board, history);
+	check = false;
+	gameSaved = false;
+	recentSave = false;
+	gameName = "";
+}
+
+ChessGame::~ChessGame() {
+	delete board;
+	delete history;
+	delete xmlHandler;
+}
+
+set<BoardPosition> ChessGame::getLegalMoves(BoardPosition piecePos) {
+	
+	set<BoardPosition> bpSetPossible;
+	set<BoardPosition> bpSetLegal;
+	
+	//get a pointer to the piece on the current board position
+	IChessPiece* curPiece = board->getPiece(piecePos);
+	
+	//get the set of all possible legal moves for this piece, barring check
+	if (curPiece != NULL) {
+		bpSetPossible = curPiece->getCandidateMoves(board, piecePos);
+	}
+	
+	// get rid of moves that will cause you to be in check
+	determineLegalMoves(piecePos, bpSetPossible, bpSetLegal);
+	
+	curPiece = NULL;		//ADDED FOR MEMORY ISSUES
+	
+	return bpSetLegal;
+}
+
+Color ChessGame::getCurrentTurn() {
+	return currentTurn;
+}
+
+void ChessGame::flipCurrentTurn() {
+	currentTurn = (currentTurn == WHITE) ? BLACK : WHITE;
+}
+
+Move ChessGame::movePiece(BoardPosition before, BoardPosition after) {
+	
+	Move mv = board->movePiece(before, after);
+	
+	if (board->enemyKingInCheck(after))
+		check = true;
+	else
+		check = false;
+	
+	history->addMove(mv);
+	
+	//so we can know whether we need to present the user
+	// a "Do you want to save" if exit requested
+	recentSave = false;
+	
+	return mv;
+}
+
+Move& ChessGame::getMostRecentMove() {
+	return history->peekLastMove();
+}
+
+ImageName ChessGame::getPieceImageName(BoardPosition bp) {
+	if (board->getPiece(bp) != NULL)
+		return board->getPiece(bp)->getImageName();
+	else
+		return NO_IMAGE;
+}
+
+IChessPiece* ChessGame::getPiece(BoardPosition bp) {
+	return board->getPiece(bp);
+}
+
+void ChessGame::determineLegalMoves(BoardPosition piecePos, set<BoardPosition>& bpSetPossible,
+									set<BoardPosition>& bpSetLegal) {
+	
+	/*if the move puts my king in check, don't insert into set of legal moves
+	 *	hypothetically make each board position change, one at a time,
+	 *  and see check for each piece on the board's possible moves set to see if
+	 *  they're next set of possible moves includes catching the king*/
+	 
+	std::set<BoardPosition>::const_iterator iter;
+	for (iter = bpSetPossible.begin(); iter != bpSetPossible.end(); ++iter) {
+		BoardPosition after(*iter);						
+														
+	 	//check to see if moving this piece will put current players king in check	
+	 	//iter is a pointer to element in collection, so deferencing necessary												
+																						
+		if (board->moveHypotheticalPiece(piecePos, after))								
+			bpSetLegal.insert(*iter); 													
+	}
+}
+
+bool ChessGame::inCheck() {
+	return check;
+}
+
+//if current game has no associate file, need to get a name for file
+// else just update the xml file associated with this game's file name
+void ChessGame::saveGame() {
+	xmlHandler->generateSaveFile(gameName);
+	recentSave = true;
+}
+
+void ChessGame::saveGameAs(string newFile) {
+	gameName = newFile;
+	gameSaved = true;
+	recentSave = true;
+	
+	xmlHandler->generateSaveFile(newFile);
+}
+
+bool ChessGame::loadGame(string file) {
+
+	gameName = file;			//so when we load file, it doesn't prompt us to save as,
+	gameSaved = true;			//  since it already exists
+	
+	//reset xmlHandler's pseudoMovesSet
+	xmlHandler->reset();
+	
+	if (!xmlHandler->loadFile(file))
+		return false;
+	
+	//reset history, board
+	resetTurns();
+	history->resetHistory();
+	board->clear();				//ADDED FOR MEMORY ISSUES (TODO check if causes issues as is)
+	board->initializeBoard();
+	
+	vector<Move> bpSet = xmlHandler->getPsuedoMovesSet();
+
+	//starting from first move, move all pieces to their correct spot
+	//TODO make sure loading promoted pieces instead of original
+	vector<Move>::const_iterator iter;
+	for (iter = bpSet.begin(); iter != bpSet.end(); ++iter) {
+		flipCurrentTurn();
+		movePiece(iter->getStartPosition(), iter->getDestinationPosition());
+	}
+	
+	recentSave = true;		//set here because movePiece() method sets recentSave to false
+	
+	return true;
+		
+	//in calling function (controller), it will put piece images on correct spot
+}
+
+void ChessGame::startNewGame() {
+	board->initializeBoard();
+	
+	recentSave = true;	//if the board is in initial state, no need to save it
+						// (checks in calling function), so it psuedo-saved already
+						// (but not saved to a file)
+}
+
+bool ChessGame::movesRemain(Color c) {
+	for (int i=0; i<8; ++i) {
+		for (int j=0; j<8; ++j) {
+			BoardPosition bp(i,j);
+			if (board->getPiece(bp) != NULL && !(board->getPiece(bp)->isEnemy(c))) {
+				if (!getLegalMoves(bp).empty())
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+BoardPosition ChessGame::getRandomStartPosition(Color c) {
+	BoardPosition bp;
+	do {
+		bp = board->getRandomPosition(c);
+	}
+	while (getLegalMoves(bp).empty());	//only return a piece that has moves we can
+										// pick an end position from
+	return bp;
+}
+
+BoardPosition ChessGame::getRandomEndPosition(BoardPosition pos) {
+
+	set<BoardPosition> legalMoves = getLegalMoves(pos);
+	
+	int randNum = (rand() % legalMoves.size());
+	
+	set<BoardPosition>::const_iterator iter;
+	int num = 0;
+	for (iter = legalMoves.begin(); iter != legalMoves.end(); ++iter) {
+		if (num == randNum) {
+			return (*iter);
+		}
+		++num;
+	}
+}
+
+///TODO: DETERMINE why board->movePiece(lastMove.getDestinationPosition(),...)
+///		 didn't work when the method declaration/definition's parameters were references
+///		 instead of just by value
+///		 movePiece(BP&, BP&) didn't work with these arguments here, but
+///		 movePiece(BP, BP) did
+///TODO: Segfaulting sometimes when undoing a move of a promotedPiece
+///		 need to make the check for isPromoted only if the next undone move is the one
+///		 that promoted the piece
+///		 UPDATE: 6/13/12 -- segfault supposedly fixed by checking to see if last move's
+///							moving piece was a pawn AND if piece being undone had been
+///							promoted from a pawn
+Move ChessGame::undoMove() {
+	Move lastMove = history->getLastMove();
+	
+	//move piece from the last's move destination position (where it currently is)
+	// to the last start position
+	board->movePiece(lastMove.getDestinationPosition(), lastMove.getStartPosition());
+	
+	
+	
+	//this piece might have been promoted
+	/*IChessPiece* possPawn = board->getPiece(lastMove.getStartPosition());
+	//check to see if the piece has been promoted AND if the moving piece of the last
+	// move was a pawn, if so, change it back
+	if (possPawn->isPromoted() && lastMove.getMovingPiece()->getType() == PAWN) {
+		//board stores pieces that have been promoted and technically removed
+		// from the board, so pop off the last promoted piece
+		//update move to point to this new piece so view knows what to show
+		lastMove.setMovingPiece(board->popLastPromotion());
+		
+		//place piece on board
+		board->placePiece(lastMove.getMovingPiece(), lastMove.getStartPosition());
+		
+		//delete the piece that the pawn had been transformed to
+		delete possPawn;
+	}
+	possPawn = NULL;*/
+	
+	
+	
+	//do this just in case the piece in the destination wasn't the original moving piece
+	// (if a pawn had been promoted)
+	//if (lastMove.getPromotedPiece() != NULL)
+	//	board->placePiece(lastMove.getMovingPiece(), lastMove.getStartPosition());
+	
+	if (board->kingInCheck(lastMove.getStartPosition()))
+		check = true;
+	else
+		check = false;
+	
+	if (lastMove.getCapturedPiece() != NULL)
+		board->placePiece(lastMove.getCapturedPiece(), lastMove.getDestinationPosition());
+	
+	recentSave = false;
+	
+	return lastMove;
+}
+
+string ChessGame::getMoveHistory() {
+	return history->toMessageString();
+}
+
+bool ChessGame::historyIsEmpty() {
+	return (history->isEmpty());
+}
+
+bool ChessGame::isRecentlySaved() {
+	return recentSave;
+}
+
+bool ChessGame::isSaved() {
+	return gameSaved;
+}
+
+void ChessGame::setGameName(string name) {
+	gameName = name;
+}
+
+string ChessGame::getGameName() {
+	return gameName;
+}
+
+void ChessGame::resetTurns() {
+	currentTurn = WHITE;
+}
+
+void ChessGame::promotePawn(PieceType newType, BoardPosition bp, Move& move) {
+	board->promotePawn(newType, bp);
+	
+	//check for check
+	if (board->enemyKingInCheck(bp))
+		check = true;
+	else
+		check = false;
+		
+	//TODO does anything need to be changed with the move history/added?
+	move.addPromotedPiece(board->getPiece(bp));
+	//TODO effect undoMove
+}
+
+bool ChessGame::canPromote(BoardPosition bp) {
+	return board->canPromotePawn(bp);
+}
+
+bool ChessGame::Test(ostream& os) {
+	bool success = true;
+	
+	return success;
+}

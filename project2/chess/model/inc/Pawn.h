@@ -1,0 +1,74 @@
+#ifndef PAWN_H
+#define PAWN_H
+
+#include "IChessPiece.h"
+#include <iostream>
+
+class Pawn : public IChessPiece {
+	private:
+		//for helping in determine a pawn's set of moves
+		bool firstTurn;
+		
+		/**
+		 * Determines special diagonal pawn capture positions and
+		 *  adds those to the set of candidate moves
+		 * Called by getCandidateMoves(...)
+		 * @param boardposition of this pawn
+		 * @param pointer to the board containing all the pieces
+		 * @param set of boardposition (candidate moves) to capture positions to
+		 */
+		void addCapturePositions(BoardPosition bp, ChessBoard* board, 
+								 std::set<BoardPosition>& bpSet);
+								 
+	public:
+		/**
+		 * two-arg constructor
+		 * @param enumerated color of piece(BLACK or WHITE)
+		 * @param enumerated direction of piece (UP or DOWN)
+		 */
+		Pawn(Color c, Direction d);
+		
+		~Pawn();
+		
+		/**
+		 * @param pointer to board containing pieces
+		 * @param position of this piece on  board
+		 * @return set of all possible legal moves(BoardPositions) for this piece, barring check
+		 */
+		std::set<BoardPosition> getCandidateMoves(ChessBoard* board, BoardPosition pos);
+		
+		/**
+		 * @return string representation of type enumeration ("pawn", "king", etc.)
+		 */
+		std::string getTypeString();
+		
+		/**
+		 * @return enumeration of the ImageName (found in ChessGuiDefines), 
+		 *  used by controller towards view to set images on gui
+		 */
+		ImageName getImageName();
+		
+		/**
+		 * Sets the firstTurn bool to true
+		 * Important for pawns and their initial moves
+		 */
+		void firstTurnDone();
+		
+		/**
+		 * Sets the firstTurn bool to false
+		 * Important for pawns and their initial moves
+		 * Used by undoMove()
+		 */
+		void firstTurnUnDone();
+		
+		/**
+		 * @param row position of piece
+		 * @param column position of piece
+		 * @return XML representation of the piece based on its passed in position
+		 */
+		std::string getXMLInfo(int row, int column);
+		
+		static bool Test(std::ostream& os);
+};
+
+#endif

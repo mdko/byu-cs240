@@ -1,0 +1,155 @@
+//BoardPosition.cpp
+
+#include "BoardPosition.h"
+#include "UnitTest.h"
+#include <iostream>
+using namespace std;
+
+BoardPosition::BoardPosition(int _row, int _col) : row(_row), column(_col) {
+	return;
+}
+
+BoardPosition::BoardPosition() : row(0), column(0) {
+}
+
+BoardPosition::~BoardPosition() {
+
+}
+
+BoardPosition::BoardPosition(const BoardPosition& other) : row(other.row), column(other.column) {
+}
+
+BoardPosition& BoardPosition::operator =(const BoardPosition& other) {
+	if (&other != this) {
+		row = other.row;
+		column = other.column;
+	}
+	return *this;
+}
+
+bool BoardPosition::operator <(const BoardPosition& other) const {
+	return (row < other.row || (row == other.row && column < other.column));
+}
+
+bool BoardPosition::operator ==(const BoardPosition& other) const {
+	return (row == other.row && column == other.column);
+}
+
+int BoardPosition::getRow() const {
+	return row;
+}
+
+int BoardPosition::getColumn() const {
+	return column;
+}
+
+void BoardPosition::setRow(int r) {
+	row = r;
+}
+
+void BoardPosition::setColumn(int c){
+	column = c;
+}
+
+bool BoardPosition::moveUp() {
+	if (row == 0) {
+		return false;
+	}
+	else {
+		--row;
+		return true;
+	}
+}
+		
+bool BoardPosition::moveUpRight() {
+	if (row == 0 || column == 7) {
+		return false;
+	}
+	else {
+		--row;
+		++column;
+		return true;
+	}
+}
+
+bool BoardPosition::moveRight() {
+	if (column == 7) {
+		return false;
+	}
+	else {
+		++column;
+		return true;
+	}
+}
+
+bool BoardPosition::moveDownRight() {
+	if (row == 7 || column == 7) {
+		return false;
+	}
+	else {
+		++row;
+		++column;
+		return true;
+	}
+
+}
+
+bool BoardPosition::moveDown() {
+	if (row == 7) {
+		return false;
+	}
+	else {
+		++row;
+		return true;	
+	}
+}
+
+bool BoardPosition::moveDownLeft() {
+	if (row == 7 || column == 0) {
+		return false;
+	}
+	else {
+		++row;
+		--column;
+		return true;
+	}
+}
+
+bool BoardPosition::moveLeft() {
+	if (column == 0) {
+		return false;
+	}
+	else {
+		--column;
+		return true;
+	}
+}
+
+bool BoardPosition::moveUpLeft() {
+	if (column == 0 || row == 0) {
+		return false;
+	}
+	else {
+		--column;
+		--row;
+		return true;
+	}
+}
+
+void BoardPosition::print() {
+	cout << getRow() << ", " << getColumn() << endl;
+}
+
+bool BoardPosition::Test(std::ostream& os) {
+	bool success = true;
+	
+	BoardPosition bp(0,0);
+	int downCount = 0;
+	while (bp.moveDown()) {
+		//cout << "Down!" << endl;
+		++downCount;
+	}
+	TEST(downCount == 7);
+	
+	return true;
+}
