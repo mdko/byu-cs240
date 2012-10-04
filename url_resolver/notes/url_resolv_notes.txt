@@ -1,0 +1,53 @@
+<scheme> :// <net_loc>       /<path>                    ? <query>               # <fragment> 
+http     :// www.espn.com:80 /basketball/nba/index.html  team=dallas&order=name   Roster
+
+//input schema
+url-resolver <base-url> <relative-url>
+//output
+<absolute(resolved)-url>
+
+//sample_1
+url-resolver http://students.cs.byu.edu/~cs240ta/index.php info/policies.php
+http://students.cs.byu.edu/~cs240ta/info/policies.php
+
+//sample_2
+url-resolver http://www.cnn.com/news/financial/index.html /images/nasdaq.jpg 
+http://www.cnn.com/images/nasdaq.jpg 
+
+//sample_3
+file:///news/financial/index.html /images/nasdaq.jpg 
+file:///images/nasdaq.jpg
+
+//sample_4
+http://www.cnn.com/news/financial/index.html ./images/nasdaq.jpg 
+http://www.cnn.com/news/financial/images/nasdaq.jpg 
+
+//sample_5
+file:///news/financial/index.html ./images/nasdaq.jpg
+file:///news/financial/images/nasdaq.jpg
+
+//sample_6
+http://www.cnn.com/news/financial/index.html ../images/nasdaq.jpg 
+http://www.cnn.com/news/images/nasdaq.jpg
+
+//sample_7
+file:///news/financial/index.html ../images/nasdaq.jpg
+file:///news/images/nasdaq.jpg
+
+//sample_8
+http://www.cnn.com/news/index.html #HEADLINES 
+http://www.cnn.com/news/index.html#HEADLINES 
+
+//sample_9
+file:///news/index.htm#HEADLINES 
+file:///news/index.html#HEADLINES 
+
+//sample_10
+http://www.cnn.com/news/financial/index.html images/nasdaq.jpg
+http://www.cnn.com/news/financial/images/nasdaq.jpg 
+
+//sample_11
+file:///news/financial/index.html images/nasdaq.jpg 
+file:///news/financial/images/nasdaq.jpg 
+
+
